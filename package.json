@@ -1,0 +1,14 @@
+{
+  "name": "valorant-api",
+  "version": "1.0.0",
+  "description": "Unofficial wrapper for the Valorant in-game API.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Burak <burak@burak.fr>",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "axios": "^0.21.1"
+  }
+}
