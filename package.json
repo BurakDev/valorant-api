@@ -9,6 +9,7 @@
   "author": "Burak <burak@burak.fr>",
   "license": "UNLICENSED",
   "dependencies": {
-    "axios": "^0.21.1"
+    "axios": "^0.21.1",
+    "ws": "^7.4.6"
   }
 }

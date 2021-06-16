@@ -35,12 +35,20 @@ class GenericClient {
     }
   }
 
+  async fetchAccountXP() {
+    return await this.fetch(`/account-xp/v1/players/${this.puuid}`, 'pd');
+  }
+
   async fetchContracts() {
     return await this.fetch(`/contracts/v1/contracts/${this.puuid}`, 'pd');
   }
 
   async fetchContractDefinitions() {
     return await this.fetch('/contract-definitions/v2/definitions', 'pd');
+  }
+
+  async fetchContractDefinitionsItemUpgrades() {
+    return await this.fetch('/contract-definitions/v3/item-upgrades', 'pd');
   }
 
   async activateContract(contractId) {
@@ -105,7 +113,7 @@ class GenericClient {
     return await this.fetch(`/parties/v1/parties/${partyId}`, 'glz');
   }
 
-  async fetchPartyCustomGameConfigs(partyId) {
+  async fetchPartyCustomGameConfigs() {
     return await this.fetch(`/parties/v1/parties/customgameconfigs`, 'glz');
   }
 
@@ -182,7 +190,7 @@ class GenericClient {
   }
 
   async fetchStoreOffers() {
-    return await this.fetch(`/store/v1/offers`, 'pd');
+    return await this.fetch(`/store/v1/offers/`, 'pd');
   }
 
   async fetchWallet() {
@@ -191,6 +199,10 @@ class GenericClient {
 
   async fetchStoreFront() {
     return await this.fetch(`/store/v2/storefront/${this.puuid}`, 'pd');
+  }
+
+  async fetchUsernamesFromPuuids(ids = []) {
+    return await this.fetch('/name-service/v2/players', 'pd', 'put', ids);
   }
 }
 

@@ -1,4 +1,5 @@
 const GenericClient = require('./GenericClient');
+const LocalWebsocket = require('./LocalWebsocket');
 
 const fs = require('fs');
 const path = require('path');
@@ -6,6 +7,12 @@ const axios = require('axios');
 const https = require('https');
 
 class LocalClient extends GenericClient {
+  constructor(lockfilePath = path.join(process.env['LOCALAPPDATA'], 'Riot Games\\Riot Client\\Config\\lockfile')) {
+    super();
+
+    this._lockfilePath = lockfilePath;
+  }
+
   async init(region = 'eu') {
     this._region = region;
     this._lockfile = await this._getLockfileData();
@@ -13,8 +20,8 @@ class LocalClient extends GenericClient {
   }
 
   async _getLockfileData() {
-    const lockfilePath = path.join(process.env['LOCALAPPDATA'], 'Riot Games\\Riot Client\\Config\\lockfile');
-    const contents = await fs.promises.readFile(lockfilePath, 'utf8');
+    const contents = await fs.promises.readFile(this._lockfilePath, 'utf8');
+
     let d = {};
     [d.name, d.pid, d.port, d.password, d.protocol] = contents.split(':');
 
@@ -29,13 +36,17 @@ class LocalClient extends GenericClient {
   }
 
   async _buildHeaders() {
-    this.localHeaders = {};
-    this.localHeaders.Authorization = 'Basic ' + Buffer.from(`riot:${this._lockfile.password}`, 'utf8').toString('base64');
+    this.localHeaders = {
+      'Authorization': 'Basic ' + Buffer.from(`riot:${this._lockfile.password}`, 'utf8').toString('base64'),
+      'X-Riot-ClientVersion': await this._getValorantClientVersion(),
+      'Content-Type': 'application/json',
+      'rchat-blocking': true
+    };
 
     let response = await axios.get(`${this._lockfile.protocol}://127.0.0.1:${this._lockfile.port}/entitlements/v1/token`, {
       headers: this.localHeaders,
       httpsAgent: new https.Agent({
-          rejectUnauthorized: false
+        rejectUnauthorized: false
       })
     });
 
@@ -47,6 +58,10 @@ class LocalClient extends GenericClient {
       'X-Riot-ClientPlatform': 'ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQyLjEuMjU2LjY0Yml0IiwNCgkicGxhdGZvcm1DaGlwc2V0IjogIlVua25vd24iDQp9',
       'X-Riot-ClientVersion': await this._getValorantClientVersion()
     };
+  }
+
+  async initializeWebsocket() {
+    return new LocalWebsocket(this._lockfile);
   }
 
   async logout() {
@@ -61,9 +76,13 @@ class LocalClient extends GenericClient {
     });
   }
 
+  async getHelp() {
+    return await this.fetch('/help', 'local');
+  }
+
   async getPresences() {
     let presences = await this.fetch('/chat/v4/presences', 'local');
-    
+
     return presences.presences.filter(presence => presence.product == 'valorant').map(presence => {
       presence.private = JSON.parse(Buffer.from(presence.private, 'base64').toString());
 
