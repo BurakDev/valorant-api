@@ -71,6 +71,10 @@ class GenericClient {
     return await this.fetch(`/core-game/v1/matches/${matchId}/loadouts`, 'glz');
   }
 
+  async coregameDisassociatePlayer(matchId) {
+    return await this.fetch(`/core-game/v1/players/${this.puuid}/disassociate/${matchId}`, 'glz');
+  }
+
   async fetchMatchDetails(matchId) {
     return await this.fetch(`/match-details/v1/matches/${matchId}`, 'pd');
   }
