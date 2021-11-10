@@ -1,28 +1,45 @@
 const axios = require('axios');
 const https = require('https');
+const SocksAgent = require('axios-socks5-agent');
 
 class GenericClient {
   async fetch(endpoint, endpointType, method = 'GET', data = null) {
     try {
+      var response, axiosEndpoint, axiosOptions;
+
       if (endpointType == 'local') {
-        var axiosEndpoint = `${this._lockfile.protocol}://127.0.0.1:${this._lockfile.port}${endpoint}`;
-        var axiosHeaders = this.localHeaders;
+        axiosEndpoint = `${this._lockfile.protocol}://127.0.0.1:${this._lockfile.port}${endpoint}`;
+        axiosHeaders = this.localHeaders;
+        axiosOptions = {
+          method: method.toUpperCase(),
+          headers: this.localHeaders,
+          httpsAgent: new https.Agent({
+            rejectUnauthorized: false
+          }),
+          data: data
+        };
       } else if (endpointType == 'glz') {
-        var axiosEndpoint = `https://glz-${this._region}-1.${this._region}.a.pvp.net${endpoint}`;
-        var axiosHeaders = this.remoteHeaders;
+        axiosEndpoint = `https://glz-${this._region}-1.${this._region}.a.pvp.net${endpoint}`;
+        axiosOptions = {
+          method: method.toUpperCase(),
+          headers: this.remoteHeaders,
+          data: data
+        };
       } else if (endpointType == 'pd') {
-        var axiosEndpoint = `https://pd.${this._region}.a.pvp.net${endpoint}`;
-        var axiosHeaders = this.remoteHeaders;
+        axiosEndpoint = `https://pd.${this._region}.a.pvp.net${endpoint}`;
+        axiosOptions = {
+          method: method.toUpperCase(),
+          headers: this.remoteHeaders,
+          data: data
+        };
       }
 
-      let response = await axios.request(axiosEndpoint, {
-        method: method.toUpperCase(),
-        headers: axiosHeaders,
-        httpsAgent: new https.Agent({
-            rejectUnauthorized: false
-        }),
-        data: data
-      });
+      if (this.proxyEnabled && endpointType != 'local') {
+        axiosOptions.httpAgent = this.proxyAgents.httpAgent;
+        axiosOptions.httpsAgent = this.proxyAgents.httpsAgent;
+      }
+
+      response = await axios.request(axiosEndpoint, axiosOptions);
 
       return response.data;
     } catch (e) {
@@ -30,9 +47,18 @@ class GenericClient {
         await this._buildHeaders();
         return await this.fetch(endpoint, endpointType);
       } else {
-        console.error('UNHANDLER ERROR', e);
+        throw new Error(e);
       }
     }
+  }
+
+  setProxy(proxyHost, proxyPort) {
+    this.proxyEnabled = true;
+    this.proxyAgents = new SocksAgent({
+      host: proxyHost,
+      port: proxyPort,
+      agentOptions: { keepAlive: true, rejectUnauthorized: false }
+    });
   }
 
   async fetchAccountXP() {
