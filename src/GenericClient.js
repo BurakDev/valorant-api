@@ -2,6 +2,13 @@ const axios = require('axios');
 const https = require('https');
 const SocksAgent = require('axios-socks5-agent');
 
+const ciphers = [
+    'TLS_CHACHA20_POLY1305_SHA256',
+    'TLS_AES_128_GCM_SHA256',
+    'TLS_AES_256_GCM_SHA384',
+    'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256'
+];
+
 class GenericClient {
   async fetch(endpoint, endpointType, method = 'GET', data = null) {
     try {
@@ -14,7 +21,10 @@ class GenericClient {
           method: method.toUpperCase(),
           headers: this.localHeaders,
           httpsAgent: new https.Agent({
-            rejectUnauthorized: false
+            rejectUnauthorized: false,
+            ciphers: ciphers.join(':'),
+            honorCipherOrder: true,
+            minVersion: 'TLSv1.2'
           }),
           data: data
         };
@@ -23,14 +33,24 @@ class GenericClient {
         axiosOptions = {
           method: method.toUpperCase(),
           headers: this.remoteHeaders,
-          data: data
+          data: data,
+          httpsAgent: new https.Agent({
+            ciphers: ciphers.join(':'),
+            honorCipherOrder: true,
+            minVersion: 'TLSv1.2'
+          })
         };
       } else if (endpointType == 'pd') {
         axiosEndpoint = `https://pd.${this._region}.a.pvp.net${endpoint}`;
         axiosOptions = {
           method: method.toUpperCase(),
           headers: this.remoteHeaders,
-          data: data
+          data: data,
+          httpsAgent: new https.Agent({
+            ciphers: ciphers.join(':'),
+            honorCipherOrder: true,
+            minVersion: 'TLSv1.2'
+          })
         };
       }
 

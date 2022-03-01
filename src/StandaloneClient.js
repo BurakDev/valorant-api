@@ -2,6 +2,20 @@ const GenericClient = require('./GenericClient');
 const axios = require('axios').default;
 const axiosCookieJarSupport = require('axios-cookiejar-support').default;
 const tough = require('tough-cookie');
+const https = require('https');
+
+const ciphers = [
+    'TLS_CHACHA20_POLY1305_SHA256',
+    'TLS_AES_128_GCM_SHA256',
+    'TLS_AES_256_GCM_SHA384',
+    'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256'
+];
+
+const httpsAgent = new https.Agent({
+  ciphers: ciphers.join(':'),
+  honorCipherOrder: true,
+  minVersion: 'TLSv1.2'
+});
 
 axiosCookieJarSupport(axios);
 
@@ -34,7 +48,11 @@ class StandaloneClient extends GenericClient {
 
     let response = await axios.post('https://auth.riotgames.com/api/v1/authorization', data, {
       jar: cookieJar,
-      withCredentials: true
+      withCredentials: true,
+      headers: {
+        'User-Agent': 'RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)'
+      },
+      httpsAgent: httpsAgent
     });
 
     data = {
@@ -45,7 +63,11 @@ class StandaloneClient extends GenericClient {
 
     response = await axios.put('https://auth.riotgames.com/api/v1/authorization', data, {
       jar: cookieJar,
-      withCredentials: true
+      withCredentials: true,
+      headers: {
+        'User-Agent': 'RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)'
+      },
+      httpsAgent: httpsAgent
     });
 
     let uri = response.data.response.parameters.uri;
@@ -60,13 +82,15 @@ class StandaloneClient extends GenericClient {
     var accessToken = arrayTokens.access_token;
 
     let headers = {
-      'Authorization': `Bearer ${arrayTokens.access_token}`
+      'Authorization': `Bearer ${arrayTokens.access_token}`,
+      'User-Agent': 'RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)'
     };
 
     response = await axios.post('https://entitlements.auth.riotgames.com/api/token/v1', {}, {
       jar: cookieJar,
       withCredentials: true,
-      headers
+      headers,
+      httpsAgent: httpsAgent
     });
 
     var entitlementsToken = response.data.entitlements_token;
@@ -74,7 +98,8 @@ class StandaloneClient extends GenericClient {
     response = await axios.post('https://auth.riotgames.com/userinfo', {}, {
       jar: cookieJar,
       withCredentials: true,
-      headers
+      headers,
+      httpsAgent: httpsAgent
     });
 
     this.puuid = response.data.sub;
