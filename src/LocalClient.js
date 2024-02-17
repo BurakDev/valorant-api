@@ -14,6 +14,12 @@ class LocalClient extends GenericClient {
   }
 
   async init(region = 'eu') {
+    if (region == 'latam' || region == 'br' || region == 'na') {
+      this._shard = 'na';
+    } else {
+      this._shard = region;
+    }
+
     this._region = region;
     this._lockfile = await this._getLockfileData();
     await this._buildHeaders();

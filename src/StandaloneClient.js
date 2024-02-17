@@ -19,6 +19,18 @@ const httpsAgent = new https.Agent({
 
 axiosCookieJarSupport(axios);
 
+function makeid(length) {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      counter += 1;
+    }
+    return result;
+}
+
 class StandaloneClient extends GenericClient {
   constructor(username, password) {
     super();
@@ -28,6 +40,12 @@ class StandaloneClient extends GenericClient {
   }
 
   async init(region = 'eu') {
+    if (region == 'latam' || region == 'br' || region == 'na') {
+      this._shard = 'na';
+    } else {
+      this._shard = region;
+    }
+
     this._region = region;
     await this._buildHeaders();
   }
@@ -38,6 +56,8 @@ class StandaloneClient extends GenericClient {
 
   async _buildHeaders() {
     const cookieJar = new tough.CookieJar();
+
+    const randomUserAgent = makeid(30);
 
     let data = {
       'client_id': 'play-valorant-web-prod',
@@ -50,22 +70,31 @@ class StandaloneClient extends GenericClient {
       jar: cookieJar,
       withCredentials: true,
       headers: {
-        'User-Agent': 'RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)'
+        "User-Agent": randomUserAgent,
+        "Cache-Control": "no-cache",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
       },
       httpsAgent: httpsAgent
     });
 
+
     data = {
+      "language": "en_US",
+      'password': this._password,
+      'remember': true,
       'type': 'auth',
       'username': this._username,
-      'password': this._password
     };
 
     response = await axios.put('https://auth.riotgames.com/api/v1/authorization', data, {
       jar: cookieJar,
       withCredentials: true,
       headers: {
-        'User-Agent': 'RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)'
+        "User-Agent": randomUserAgent,
+        "Cache-Control": "no-cache",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
       },
       httpsAgent: httpsAgent
     });
@@ -83,7 +112,10 @@ class StandaloneClient extends GenericClient {
 
     let headers = {
       'Authorization': `Bearer ${arrayTokens.access_token}`,
-      'User-Agent': 'RiotClient/43.0.1.4195386.4190634 rso-auth (Windows; 10;;Professional, x64)'
+      "User-Agent": randomUserAgent,
+      "Cache-Control": "no-cache",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
     };
 
     response = await axios.post('https://entitlements.auth.riotgames.com/api/token/v1', {}, {

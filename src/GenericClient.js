@@ -1,6 +1,8 @@
 const axios = require('axios');
 const https = require('https');
 const SocksAgent = require('axios-socks5-agent');
+const HttpsProxyAgent = require('https-proxy-agent').HttpsProxyAgent;
+const HttpProxyAgent = require('http-proxy-agent').HttpProxyAgent;
 
 const ciphers = [
     'TLS_CHACHA20_POLY1305_SHA256',
@@ -29,7 +31,7 @@ class GenericClient {
           data: data
         };
       } else if (endpointType == 'glz') {
-        axiosEndpoint = `https://glz-${this._region}-1.${this._region}.a.pvp.net${endpoint}`;
+        axiosEndpoint = `https://glz-${this._region}-1.${this._shard}.a.pvp.net${endpoint}`;
         axiosOptions = {
           method: method.toUpperCase(),
           headers: this.remoteHeaders,
@@ -41,7 +43,7 @@ class GenericClient {
           })
         };
       } else if (endpointType == 'pd') {
-        axiosEndpoint = `https://pd.${this._region}.a.pvp.net${endpoint}`;
+        axiosEndpoint = `https://pd.${this._shard}.a.pvp.net${endpoint}`;
         axiosOptions = {
           method: method.toUpperCase(),
           headers: this.remoteHeaders,
@@ -59,26 +61,39 @@ class GenericClient {
         axiosOptions.httpsAgent = this.proxyAgents.httpsAgent;
       }
 
+      if (this.timeout) {
+        axiosOptions.timeout = this.timeout;
+      }
+
       response = await axios.request(axiosEndpoint, axiosOptions);
 
       return response.data;
     } catch (e) {
-      if (e.response && e.response.status && e.response.status == 400) {
-        await this._buildHeaders();
-        return await this.fetch(endpoint, endpointType);
-      } else {
-        throw new Error(e);
-      }
+      throw e;
     }
   }
 
-  setProxy(proxyHost, proxyPort) {
+  setTimeout(timeout) {
+    this.timeout = timeout;
+  }
+
+  setProxy(proxyHost, proxyPort, proxyType) {
     this.proxyEnabled = true;
-    this.proxyAgents = new SocksAgent({
-      host: proxyHost,
-      port: proxyPort,
-      agentOptions: { keepAlive: true, rejectUnauthorized: false }
-    });
+
+    if (proxyType == 'http') {
+      this.proxyAgents = {
+        httpAgent: new HttpProxyAgent(`http://${proxyHost}:${proxyPort}`, { keepAlive: false }),
+        httpsAgent: new HttpsProxyAgent(`http://${proxyHost}:${proxyPort}`, { keepAlive: false, rejectUnauthorized: false })
+      }
+    } else if (proxyType == 'socks') {
+      this.proxyAgents = new SocksAgent({
+        host: proxyHost,
+        port: proxyPort,
+        agentOptions: { keepAlive: false, rejectUnauthorized: false }
+      });
+    } else {
+      throw new Error('not supported proxy type');
+    }
   }
 
   async fetchAccountXP() {
