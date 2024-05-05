@@ -54,6 +54,18 @@ class GenericClient {
             minVersion: 'TLSv1.2'
           })
         };
+      } else if (endpointType == 'raw') {
+        axiosEndpoint = endpoint;
+        axiosOptions = {
+          method: method.toUpperCase(),
+          headers: this.remoteHeaders,
+          data: data,
+          httpsAgent: new https.Agent({
+            ciphers: ciphers.join(':'),
+            honorCipherOrder: true,
+            minVersion: 'TLSv1.2'
+          })
+        };
       }
 
       if (this.proxyEnabled && endpointType != 'local') {
